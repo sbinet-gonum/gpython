@@ -66,6 +66,16 @@ except SyntaxError as e:
 else:
     assert False, "SyntaxError not raised"
 
+doc="id"
+o1 = object()
+o2 = object()
+assert True, id(o1)==id(o1)
+assert True, id(o1)!=id(o2)
+assert True, id(None)==id(None)
+assert True, id(True)==id(True)
+assert True, id(False)!=id(True)
+assert True, id(False)==id(False)
+
 doc="isinstance"
 class A:
     pass

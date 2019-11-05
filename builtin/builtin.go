@@ -7,7 +7,9 @@ package builtin
 
 import (
 	"fmt"
+	"log"
 	"math/big"
+	"reflect"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -42,7 +44,7 @@ func init() {
 		py.MustNewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
 		// py.MustNewMethod("hash", builtin_hash, 0, hash_doc),
 		// py.MustNewMethod("hex", builtin_hex, 0, hex_doc),
-		// py.MustNewMethod("id", builtin_id, 0, id_doc),
+		py.MustNewMethod("id", builtin_id, 0, id_doc),
 		// py.MustNewMethod("input", builtin_input, 0, input_doc),
 		py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
 		// py.MustNewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
@@ -825,6 +827,67 @@ Read and execute code from an object, which can be a string or a code
 object.
 The globals and locals are dictionaries, defaulting to the current
 globals and locals.  If only globals is given, locals defaults to it.`
+
+const id_doc = `id(obj) -> int
+
+Return the identity of an object.
+
+This is guaranteed to be unique among simultaneously existing objects.
+(GPython uses the object's memory address.)
+`
+
+func builtin_id(self, v py.Object) (py.Object, error) {
+	//	var rv reflect.Value
+	//	switch v {
+	//	case py.None:
+	//		rv = reflect.ValueOf(&py.None)
+	//	case py.True:
+	//		rv = reflect.ValueOf(&py.True)
+	//	case py.False:
+	//		rv = reflect.ValueOf(&py.False)
+	//	default:
+	//		rv = reflect.ValueOf(v)
+	//	}
+	//	return py.Int(rv.Pointer()), nil
+	//	ptr := *(*uintptr)(unsafe.Pointer(&v))
+	//	return py.Int(uintptr(ptr)), nil
+
+	//	rv := reflect.ValueOf(v)
+	//	log.Printf("v=%T -- %v", v, rv.Kind())
+	//	ptr := rv.InterfaceData()[1]
+	//	return py.Int(ptr), nil
+
+	var (
+		addr uintptr
+	)
+	switch v {
+	case py.None:
+		addr = reflect.ValueOf(&py.None).Pointer()
+	case py.True:
+		addr = reflect.ValueOf(&py.True).Pointer()
+	case py.False:
+		addr = reflect.ValueOf(&py.False).Pointer()
+	default:
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
+			addr = rv.Pointer()
+		default:
+			log.Printf("v=%T -- kind=%v %p", v, rv.Kind(), v)
+			var vv = reflect.ValueOf(interface{}(&v))
+			log.Printf("v=%T -- kind=%v %v", vv.Interface(), vv.Kind(), vv.InterfaceData())
+			switch v := v.(type) {
+			case py.Int:
+				addr = reflect.ValueOf(&v).Pointer()
+			case py.Float:
+				addr = reflect.ValueOf(&v).Pointer()
+			}
+		}
+
+	}
+	return py.Int(addr), nil
+
+}
 
 const isinstance_doc = `isinstance(obj, class_or_tuple) -> bool
 
